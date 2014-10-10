@@ -1,0 +1,111 @@
+/*
+ * Copyright (c) 2013 CNRS/LAAS & ISIR/UPMC
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+                   *** AUDIO_STREAM_SERVER ***  
+  
+  The Audio Stream Server broadcasts the audio aquire from a binaural configuration. 
+  The Audio can be retrieve by any genom module and it can be from 50mS to 1S, depending on the needs.  
+    
+  CONTENTS:  
+  0. GETTING STARTED.
+  1. HOW TO USE THE AUDIO_STREAM_SERVER  
+  2. HOW TO USE THE CLIENT_TOY_MODULE  
+  3. RECOMMENDED STEPS TO USE THE SERVER AND THE "TOY-CLIENT"  
+
+0.GETTING STARTED -------------------------------------------------------------  
+    First of all, make sure you have all these environment variables set:
+    export PATH=${PATH}:${HOME}/openrobots/bin:${HOME}/openrobots/sbin
+    export INSTALL_DIR=${HOME}/openrobots
+    export TEMPLATES=ros/server,ros/client/c
+    export PKG_CONFIG_PATH=$INSTALL_DIR/lib/pkgconfig
+
+1.HOW TO USE THE AUDIO_STREAM_SERVER -------------------------------------------  
+    1.1. Build the Server:  
+      1.1.1 Open a new Terminal (T1):  
+      1.1.2 Go to path /audio_stream_server/capture  
+      1.1.3 > genom3 skeleton -m auto capture.gen  
+      1.1.4 > ./bootstrap.sh  
+      1.1.5 > mkdir build  
+      1.1.6 > cd build  
+      1.1.7 > ../configure --prefix=$INSTALL_DIR --with-templates=$TEMPLATES 
+      1.1.8 > make  
+      1.1.9 > sudo make install  
+  
+    1.2. Run the Server:  
+      In the same Terminal (T1):  
+      1.2.1 > roscore &  
+      1.2.2 > capture-ros -b &  
+      1.2.3 > genomixd &  
+      1.2.4 > eltclsh  
+      1.2.5 > package require genomix  
+      1.2.6 > ::genomix::connect  
+      1.2.7 > genomix1 load capture  
+      1.2.8 > ::capture::StartCapture  
+  
+    1.3. Stop the Server  
+      Open a new Terminal (T2):  
+      1.3.1 > eltclsh  
+      1.3.2 > package require genomix  
+      1.3.3 > ::genomix::connect  
+      1.3.4 > genomix1 load capture  
+      1.3.5 > ::capture::StopCapture  
+  
+2.HOW TO USE THE CLIENT_TOY_MODULE ---------------------------------------------  
+    2.1. Build the Client:  
+      2.1.1 Open a new Terminal (T3):  
+      2.1.2 Go to path /audio_stream_server/client  
+      2.1.3 > genom3 skeleton -m auto client.gen  
+      2.1.4 > ./bootstrap.sh  
+      2.1.5 > mkdir build  
+      2.1.6 > cd build  
+      2.1.7 > ../configure --prefix=$INSTALL_DIR --with-templates=$TEMPLATES  
+      2.1.8 > make  
+      2.1.9 > sudo make install  
+  
+    2.2. Run the Client:  
+      In the same Terminal (T3):  
+      2.2.1 > client-ros -b &  
+      2.2.2 > eltclsh  
+      2.2.3 > package require genomix  
+      2.2.4 > ::genomix::connect  
+      2.2.5 > genomix1 load client  
+      2.2.6 > ::client::connect_port PortX capture/PortX (X is the port you
+            want: Port500, Port1000 or Port 4000.)  
+      2.2.7 > ::client::getNewData 
+      2.2.8 short blockAmount > Y (Y is the number of blocks you want to display. 
+            Each block is 50mS.)
+      2.2.8.1.a For Port500:  1 <= Y <= 10
+      2.2.8.1.b For Port1000: 1 <= Y <= 20
+      2.2.8.1.c For Port4000: 1 <= Y <= 80
+      2.2.8.2 Depending on Y is going to be the "refresh screen time" that you will see
+              new information. For example, for 15 you will see new information every 750mS.
+      2.2.9 short PortNumber > Z (Z is the number correspondig to the Port 
+            connected on step 2.2.6 (500, 1000 or 4000)).
+  
+    2.3. Stop the Client  
+      In a different Terminal (T4):  
+      2.3.1 > eltclsh  
+      2.3.2 > package require genomix  
+      2.3.3 > ::genomix::connect  
+      2.3.4 > genomix1 load client  
+      2.3.5 > ::client::Stop  
+  
+3.RECOMMENDED STEPS TO USE THE SERVER AND THE "TOY-CLIENT"----------------------  
+    3.1 Build the server (1.1).  
+    3.2 Run the server (1.2).  
+    3.3 Build the "toy-client" (2.1).    
+    3.4 Run the "toy-client" (2.2).  
+    3.5 Stop the "toy-client" (2.3).  
+    3.6 Stop the server (1.3).  

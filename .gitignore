@@ -1,0 +1,14 @@
+*~
+tmp*
+*Makefile.in
+codels/*Makefile.in
+*aclocal.m4
+*autoconf*
+*autom4te.cache*
+*bootstrap.sh
+*build*
+*configure
+*configure.ac
+*.pc.in
+*.mexa64
+*.mat
