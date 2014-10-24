@@ -38,13 +38,18 @@ if (blocksAvailable > nbBlocks)
     blocksAvailable = nbBlocks;
 end
 
-framesAvailable = blocksAvailable*periodSize;
+%framesAvailable = blocksAvailable*periodSize;
+framesAvailable=length(audio.left);
 data.left = zeros(framesAvailable, 1);
 data.right = zeros(framesAvailable, 1);
 data.output = zeros(framesAvailable, 2);
 
-data.left = audio.left((end-framesAvailable+1):end);
-data.right = audio.right((end-framesAvailable+1):end);
-data.output(:, 1) = audio.output((end-framesAvailable+1):end,1);
-data.output(:, 2) = audio.output((end-framesAvailable+1):end,2);
+%data.left = audio.left((end-framesAvailable+1):end);
+%data.right = audio.right((end-framesAvailable+1):end);
+%data.output(:, 1) = audio.output((end-framesAvailable+1):end,1);
+%data.output(:, 2) = audio.output((end-framesAvailable+1):end,2);
+data.left = audio.left;
+data.right = audio.right;
+data.output(:, 1) = audio.output(:, 1);
+data.output(:, 2) = audio.output(:, 2);
 end
