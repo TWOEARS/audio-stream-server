@@ -1,0 +1,107 @@
+/*/ Copyright (c) 2014, LAAS/CNRS
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "bassStruct.idl"
+#include "bassInterface.gen"
+
+component bass {
+    version         "1.0";
+    lang            "c";
+    require         "genom3 >= 2.99.24";
+    provides        bassInterface;
+    codels-require  "alsa";
+
+    /* ---IDS declaration--- */
+    native alsaParamsStruct;
+    ids {
+        string                  device;
+        unsigned long           sampleRate;
+        unsigned long           chunkTime;
+        unsigned long           nChunksOnPort;
+        alsaParamsStruct        params;
+        binaudio::chunkStruct   currentChunk;
+    };
+
+    /* ---Exceptions declaration--- */
+    exception e_chunkTime, e_nomem; /* TODO: more exceptions */
+
+    /* ---Task declaration--- */
+    task capture {
+        codel <start>   start_capture(inout ::ids) yield ether;
+        codel <stop>    stop_capture(inout ::ids) yield ether;
+    };
+
+    task socket {
+        period      5ms;
+        priority    200;
+        stack       4000;
+
+        codel <start>   sInitModule() yield ether;
+    };
+
+    /* ---Services declaration--- */
+    activity Acquire(
+      in string device = "hw:1,0" : "Name of the sound device",
+      in unsigned long sampleRate = 44100 : "Sample rate in Hz",
+      in unsigned long chunkTime = 50 : "Chunks size in milliseconds",
+      in unsigned long nChunksOnPort = 20 : "Port size in number of chunks"
+      ) {
+        doc     "Acquire data from an audio device and stream it on a port";
+        task    capture;
+
+        validate           validateAcquire(local in sampleRate,
+                               local in chunkTime);
+        codel <start>      startAcquire(local in device, local in sampleRate,
+                               local in chunkTime, local in nChunksOnPort,
+                               inout ::ids, port out Audio) yield exec, ether;
+        async codel <exec> execAcquire(inout ::ids, port out Audio)
+                               yield exec, stop;
+        codel <stop>       stopAcquire(inout ::ids) yield ether;
+
+        throw   e_chunkTime, e_nomem;
+    };
+
+    function Stop() {
+        doc         "Stop audio data acquisition";
+        interrupts  Acquire;
+    };
+
+    activity DedicatedSocket() {
+        codel <start>           initModule() yield ether, recv;
+        async codel <recv>      Transfer(in ::ids, port in Audio) yield recv, ether;
+
+        task    socket;
+	};
+
+    activity CloseSocket(){
+        codel <start>           closeSocket() yield ether;
+        task socket;
+    };
+};

@@ -1,35 +1,35 @@
 /*  Copyright (c) 2014, LAAS/CNRS
  * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
- * 1. Redistributions of source code must retain the above copyright notice, 
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
- * 
- * 2. Redistributions in binary form must reproduce the above copyright notice, 
- *    this list of conditions and the following disclaimer in the documentation 
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
- * 3. Neither the name of the copyright holder nor the names of its contributors 
- *    may be used to endorse or promote products derived from this software 
- *    without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "accapture.h"
+#include "acbass.h"
 
-#include "capture_c_types.h"
+#include "bass_c_types.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -55,21 +55,23 @@ uint32_t num = 1;
 
 /** Codel sInitModule of task socket.
  *
- * Triggered by capture_start.
- * Yields to capture_ether.
+ * Triggered by bass_start.
+ * Yields to bass_ether.
  */
 genom_event
 sInitModule(genom_context self)
 {
     end = 1;
-    return capture_ether;
+    return bass_ether;
 }
 
+
 /* --- Activity DedicatedSocket ----------------------------------------- */
+
 /** Codel initModule of activity DedicatedSocket.
  *
- * Triggered by capture_start.
- * Yields to capture_ether, capture_recv.
+ * Triggered by bass_start.
+ * Yields to bass_ether, bass_recv.
  */
 genom_event
 initModule(genom_context self)
@@ -81,7 +83,7 @@ initModule(genom_context self)
 	if(sockfd < 0)
 	{
 		printf("ERROR: Socket not opened.\n");
-		return capture_ether;	
+		return bass_ether;	
 	}	
 	printf("Socket opened.\n");
 	bzero((char *)&serv_addr, sizeof(serv_addr));
@@ -94,14 +96,14 @@ initModule(genom_context self)
 	if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) 
 	{
 		printf("ERROR: setsockopt.\n");
-		return capture_ether;
+		return bass_ether;
 	} 
 
 	if(bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 	{
 		printf("Error binding.\n");
 		close(sockfd);
-		return capture_ether;
+		return bass_ether;
 	}
 	printf("Bind correctly\n");
     
@@ -122,15 +124,16 @@ initModule(genom_context self)
 
     end = 0;
 
-    return capture_recv;
+    return bass_recv;
 }
+
 /** Codel Transfer of activity DedicatedSocket.
  *
- * Triggered by capture_recv.
- * Yields to capture_recv, capture_ether.
+ * Triggered by bass_recv.
+ * Yields to bass_recv, bass_ether.
  */
 genom_event
-Transfer(const capture_ids *ids, const capture_Audio *Port,
+Transfer(const bass_ids *ids, const bass_Audio *Audio,
          genom_context self)
 {
     char *result;
@@ -212,27 +215,27 @@ Transfer(const capture_ids *ids, const capture_Audio *Port,
                                 }
                                 printf("clientIndex = %d\n", clientIndex);
 
-                                blocksToSend = Port->data(self)->lastChunkIndex - clientIndex;
-                                printf("Server Index: %d\n", Port->data(self)->lastChunkIndex);
-                                if(blocksToSend>ids->Port_chunks)
+                                blocksToSend = Audio->data(self)->lastChunkIndex - clientIndex;
+                                printf("Server Index: %d\n", Audio->data(self)->lastChunkIndex);
+                                if(blocksToSend>ids->nChunksOnPort)
                                 {
-                                    blocksToSend = ids->Port_chunks;
+                                    blocksToSend = ids->nChunksOnPort;
                                 }
                                 printf("Blocks to send: %d\n", blocksToSend);
-                                CAPTURE_PERIOD_SIZE = (ids->transfer_rate*ids->chunk_time)/1000;
+                                CAPTURE_PERIOD_SIZE = (ids->sampleRate*ids->chunkTime)/1000;
                                 printf("CAPTURE_PERIOD_SIZE: %d\n", CAPTURE_PERIOD_SIZE);   
                                 CAPTURE_CHANNELS = 2; //ids->params->channels; TODO: Change the hardcoded 2!!!
                                 printf("CAPTURE_CHANNELS: %d\n", CAPTURE_CHANNELS);
                                 message = malloc(((CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+2)*sizeof(int32_t)); //44100(samples for 1/2 sec)*0.5(sec)*2(channels)
-                                printf("ids->Port_chunks: %d\n", ids->Port_chunks);
-                                printf("Port->data(self)->left._length: %d\n", Port->data(self)->left._length);
+                                printf("ids->nChunksOnPort: %d\n", ids->nChunksOnPort);
+                                printf("Audio->data(self)->left._length: %d\n", Audio->data(self)->left._length);
                                 for(i=0; i<(CAPTURE_PERIOD_SIZE*blocksToSend); i++)
                                 {
-                                    message[1+i] = *(Port->data(self)->left._buffer+((CAPTURE_PERIOD_SIZE*(ids->Port_chunks-blocksToSend))+i));
-                                    message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Port->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(ids->Port_chunks-blocksToSend))+i));
+                                    message[1+i] = *(Audio->data(self)->left._buffer+((CAPTURE_PERIOD_SIZE*(ids->nChunksOnPort-blocksToSend))+i));
+                                    message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Audio->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(ids->nChunksOnPort-blocksToSend))+i));
                                 }
                                 message[0] = blocksToSend;
-                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Port->data(self)->lastChunkIndex;
+                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Audio->data(self)->lastChunkIndex;
                                 n = send(poll_set[fd_index].fd, message, (CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2)*4, NULL);
                                 if(n>0)
                                 {
@@ -268,10 +271,10 @@ Transfer(const capture_ids *ids, const capture_Audio *Port,
                 }
             }
         }
-        return capture_recv;
+        return bass_recv;
     }
     else
-        return capture_ether;
+        return bass_ether;
 }
 
 
@@ -279,8 +282,8 @@ Transfer(const capture_ids *ids, const capture_Audio *Port,
 
 /** Codel closeSocket of activity CloseSocket.
  *
- * Triggered by capture_start.
- * Yields to capture_ether.
+ * Triggered by bass_start.
+ * Yields to bass_ether.
  */
 genom_event
 closeSocket(genom_context self)
@@ -290,5 +293,5 @@ closeSocket(genom_context self)
         close(poll_set[i].fd);
     printf("Connections closed.\n"); 
         
-    return capture_ether;
+    return bass_ether;
 }
