@@ -130,7 +130,7 @@ initModule(genom_context self)
  * Yields to capture_recv, capture_ether.
  */
 genom_event
-Transfer(const capture_ids *ids, const capture_Port *Port,
+Transfer(const capture_ids *ids, const capture_Audio *Port,
          genom_context self)
 {
     char *result;
@@ -212,8 +212,8 @@ Transfer(const capture_ids *ids, const capture_Port *Port,
                                 }
                                 printf("clientIndex = %d\n", clientIndex);
 
-                                blocksToSend = Port->data(self)->index - clientIndex;
-                                printf("Server Index: %d\n", Port->data(self)->index);
+                                blocksToSend = Port->data(self)->lastChunkIndex - clientIndex;
+                                printf("Server Index: %d\n", Port->data(self)->lastChunkIndex);
                                 if(blocksToSend>ids->Port_chunks)
                                 {
                                     blocksToSend = ids->Port_chunks;
@@ -232,7 +232,7 @@ Transfer(const capture_ids *ids, const capture_Port *Port,
                                     message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Port->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(ids->Port_chunks-blocksToSend))+i));
                                 }
                                 message[0] = blocksToSend;
-                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Port->data(self)->index;
+                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Port->data(self)->lastChunkIndex;
                                 n = send(poll_set[fd_index].fd, message, (CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2)*4, NULL);
                                 if(n>0)
                                 {

@@ -39,16 +39,17 @@ module capture {
 
     struct chunk_t {
         unsigned long nbframes;
-        timestamp_t ts;
+        /*timestamp_t ts;*/
         sequence<long> left;
         sequence<long> right;
     };
 
     struct port_t {
-        unsigned long transfer_rate;
-        unsigned long nbframes;
-        unsigned long index;
-        timestamp_t ts;
+        unsigned long transferRate;
+        unsigned long nChunksOnPort;
+        unsigned long nFramesPerChunk;
+        unsigned long lastChunkIndex;
+        /*timestamp_t ts;*/
         sequence<long> left;
         sequence<long> right;
     };

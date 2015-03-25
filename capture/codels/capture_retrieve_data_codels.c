@@ -81,7 +81,7 @@ stop_retrieve_data(capture_ids *ids, genom_context self)
 genom_event
 scStart(capture_ids *ids, const char *device, uint32_t transfer_rate,
         uint32_t chunk_time, uint32_t Port_chunks,
-        const capture_Port *Port, genom_context self)
+        const capture_Audio *Audio, genom_context self)
 {
     int err;
 
@@ -91,11 +91,8 @@ scStart(capture_ids *ids, const char *device, uint32_t transfer_rate,
     /* Prepare the Port and the IDS */
     uint32_t chunk_size = transfer_rate*chunk_time/1000;
     if (initCurrentChunk(ids, chunk_size) ||
-        initPort(Port, Port_chunks*chunk_size, transfer_rate, self))
+        initPort(Audio, transfer_rate, Port_chunks, chunk_size, self))
         return capture_ERROR_SEQUENCE_ENOMEM(self);
-
-    Port->data(self)->index = 0;
-    Port->write(self);
 
     /* Start the capture */
     if ((err = createCapture(ids)) < 0) {
@@ -114,7 +111,8 @@ scStart(capture_ids *ids, const char *device, uint32_t transfer_rate,
  * Throws capture_INVALID_CHUNK_TIME, capture_ERROR_SEQUENCE_ENOMEM.
  */
 genom_event
-scExec(capture_ids *ids, const capture_Port *Port, genom_context self)
+scExec(capture_ids *ids, const capture_Audio *Audio,
+       genom_context self)
 {
     int err;
 
@@ -123,8 +121,7 @@ scExec(capture_ids *ids, const capture_Port *Port, genom_context self)
         return capture_stop;
 
     /* Publish the data on the Port */
-    
-    publishPort(Port, ids, self);
+    publishPort(Audio, ids, self);
 
     return capture_exec;
 }

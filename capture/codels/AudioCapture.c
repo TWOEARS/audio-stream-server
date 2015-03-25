@@ -53,7 +53,7 @@ int initConstantParameters(capture_ids *ids)
 
 /* initVariableParameters --------------------------------------------------- */
 
-int initVariableParameters(capture_ids *ids, char *device, 
+int initVariableParameters(capture_ids *ids, const char *device,
                            uint32_t transfer_rate, uint32_t chunk_time, 
                            uint32_t Port_chunks)
 {
@@ -267,7 +267,7 @@ int runCapture(capture_ids *ids)
         }
 
         /* Get the trigger timestamp */
-        snd_pcm_status_t *status;
+        /*snd_pcm_status_t *status;
         snd_htimestamp_t ts;
         snd_pcm_status_alloca(&status);
         if ((err = snd_pcm_status(ids->params->handle, status)) < 0) {
@@ -277,7 +277,7 @@ int runCapture(capture_ids *ids)
         snd_pcm_status_get_trigger_htstamp(status, &ts);
         //printf("Trigger timestamp: sec %d nsec %d\n", ts.tv_sec, ts.tv_nsec);
         ids->current_chunk.ts.tv_sec = ts.tv_sec;
-        ids->current_chunk.ts.tv_nsec = ts.tv_nsec;
+        ids->current_chunk.ts.tv_nsec = ts.tv_nsec;*/
 
     } else {
         if ((err = snd_pcm_wait (ids->params->handle, -1)) < 0) {
@@ -317,7 +317,7 @@ int runCapture(capture_ids *ids)
     }
 
     /* Process the new timestamp of the last frame */
-    double tmp;
+    /*double tmp;
     tmp = (double)ids->current_chunk.nbframes/(double)ids->transfer_rate;
     tmp *= 1000000000;
     ids->current_chunk.ts.tv_nsec += (int) tmp;
@@ -325,7 +325,7 @@ int runCapture(capture_ids *ids)
         ids->current_chunk.ts.tv_sec += 
                                 ids->current_chunk.ts.tv_nsec / 1000000000;
         ids->current_chunk.ts.tv_nsec %= 1000000000;
-    };
+    };*/
 
     return err;
 }

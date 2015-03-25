@@ -33,10 +33,10 @@
 #include "capture_c_types.h"
 
 int initCurrentChunk(capture_ids *ids, uint32_t size);
-int initPort(const capture_Port *Port, uint32_t size, 
-              uint32_t transfer_rate, genom_context self);
+int initPort(const capture_Audio *Port, uint32_t transfer_rate, uint32_t chunks,
+               uint32_t chunk_size, genom_context self);
 
-int publishPort(const capture_Port *Port, capture_ids *ids, 
+int publishPort(const capture_Audio *Port, capture_ids *ids,
                  genom_context self);
 
 #endif /* PORTS_H */

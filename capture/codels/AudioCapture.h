@@ -55,7 +55,7 @@ struct capture_alsaParams_t
 };
 
 int initConstantParameters(capture_ids *ids);
-int initVariableParameters(capture_ids *ids, char *device, 
+int initVariableParameters(capture_ids *ids, const char *device,
                            uint32_t transfer_rate, uint32_t chunk_time, 
                            uint32_t Port_chunks);
 int createCapture(capture_ids *ids);

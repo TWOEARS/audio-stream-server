@@ -30,6 +30,6 @@
 #include "captureStruct.idl"
 
 interface captureinterface {
-    port out capture::port_t Port;
+    port out capture::port_t Audio;
 };
 

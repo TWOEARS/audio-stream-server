@@ -71,8 +71,8 @@ component capture {
     activity StartCapture(
         in string device =                  "hw:1,0"    : "Name of the sound device",
         in unsigned long transfer_rate =    44100       : "Sample rate in Hz",
-        in unsigned long chunk_time =       50          : "Size of transfer chunks in miliseconds",
-        in unsigned long Port_chunks =      20          : "Size of the Port in number of chunks") {
+        in unsigned long chunk_time =       50          : "Size of transfer chunks in milliseconds",
+        in unsigned long Port_chunks =      20          : "Size of the port in number of chunks") {
 
         task    retrieve_data;
         throw INVALID_CHUNK_TIME, ERROR_SEQUENCE_ENOMEM;
@@ -80,9 +80,9 @@ component capture {
 
         codel <start> scStart(inout ::ids, local in device,
                               local in transfer_rate, local in chunk_time, 
-                              local in Port_chunks, port out Port)
+                              local in Port_chunks, port out Audio)
                               yield exec, ether;
-        async codel <exec> scExec(inout ::ids, port out Port) yield exec, stop;
+        async codel <exec> scExec(inout ::ids, port out Audio) yield exec, stop;
         codel <stop> scStop(inout ::ids) yield ether;
     };
 
@@ -95,7 +95,7 @@ component capture {
 
     activity DedicatedSocket() {
         codel <start>           initModule() yield ether, recv;
-        async codel <recv>      Transfer(in ::ids, port in Port) yield recv, ether;         
+        async codel <recv>      Transfer(in ::ids, port in Audio) yield recv, ether;
 
         task    socket;
 	};

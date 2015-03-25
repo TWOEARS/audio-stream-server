@@ -55,57 +55,60 @@ int initCurrentChunk(capture_ids *ids, uint32_t size)
 
 /* initPort ----------------------------------------------------------------- */
 
-int initPort(const capture_Port *Port, uint32_t size, uint32_t transfer_rate, 
-             genom_context self)
+int initPort(const capture_Audio *Port, uint32_t transfer_rate, uint32_t chunks,
+               uint32_t chunk_size, genom_context self)
 {
+    uint32_t size = chunks * chunk_size;
     if (genom_sequence_reserve(&(Port->data(self)->left), size) || 
         genom_sequence_reserve(&(Port->data(self)->right), size))
         return -1;
 
     Port->data(self)->left._length = size;
     Port->data(self)->right._length = size;
-    Port->data(self)->nbframes = size;
 
     int ii;
     for (ii = 0; ii < size; ii++) {
         Port->data(self)->left._buffer[ii] = 0;
         Port->data(self)->right._buffer[ii] = 0;
     }
-    Port->data(self)->transfer_rate = transfer_rate;
+    Port->data(self)->transferRate = transfer_rate;
+    Port->data(self)->nChunksOnPort = chunks;
+    Port->data(self)->nFramesPerChunk = chunk_size;
+    Port->data(self)->lastChunkIndex = 0;
     Port->write(self);
     return 0;
 }
 
 /* publishPort ------------------------------------------------------------- */
 
-int publishPort(const capture_Port *Port, capture_ids *ids, 
+int publishPort(const capture_Audio *Port, capture_ids *ids,
                  genom_context self)
 {
+    uint32_t fop;
+    fop = Port->data(self)->nChunksOnPort * Port->data(self)->nFramesPerChunk;
     memmove(Port->data(self)->left._buffer, 
             Port->data(self)->left._buffer + ids->current_chunk.nbframes, 
-            (Port->data(self)->nbframes - ids->current_chunk.nbframes)*
+            (fop - ids->current_chunk.nbframes)*
             ids->params->sizeof_format);
     memmove(Port->data(self)->right._buffer, 
             Port->data(self)->right._buffer + ids->current_chunk.nbframes, 
-            (Port->data(self)->nbframes - ids->current_chunk.nbframes)*
+            (fop - ids->current_chunk.nbframes)*
             ids->params->sizeof_format);
 
     /*   *****  *****  *****  *****  ***** *****   */
     /*   | <-   |                          |new    */
     /*   memmove                           memcpy  */
 
-    memcpy(Port->data(self)->left._buffer + Port->data(self)->nbframes - 
-           ids->current_chunk.nbframes,
+    memcpy(Port->data(self)->left._buffer + fop - ids->current_chunk.nbframes,
            ids->current_chunk.left._buffer,
            ids->current_chunk.nbframes*ids->params->sizeof_format);
-    memcpy(Port->data(self)->right._buffer + Port->data(self)->nbframes - 
-           ids->current_chunk.nbframes,
+    memcpy(Port->data(self)->right._buffer + fop - ids->current_chunk.nbframes,
            ids->current_chunk.right._buffer,
            ids->current_chunk.nbframes*ids->params->sizeof_format);
 
-    Port->data(self)->ts.tv_sec = ids->current_chunk.ts.tv_sec;
-    Port->data(self)->ts.tv_nsec = ids->current_chunk.ts.tv_nsec;
-    Port->data(self)->index++;
+    /*Port->data(self)->ts.tv_sec = ids->current_chunk.ts.tv_sec;
+    Port->data(self)->ts.tv_nsec = ids->current_chunk.ts.tv_nsec;*/
+    Port->data(self)->lastChunkIndex++;
     Port->write(self);
     return 0;
 }
