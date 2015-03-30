@@ -1,4 +1,4 @@
-/*  Copyright (c) 2014, LAAS/CNRS
+/* Copyright (c) 2014, LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,8 @@
 /** Validation codel validateAcquire of activity Acquire.
  *
  * Returns genom_ok.
- * Throws bass_e_chunkTime, bass_e_nomem.
+ * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
+ * bass_e_hwparams, bass_e_swparams.
  */
 genom_event
 validateAcquire(uint32_t sampleRate, uint32_t chunkTime,

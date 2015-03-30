@@ -35,35 +35,51 @@
 #include <stdint.h>
 #include "bass_c_types.h"
 
-struct bass_alsaParamsStruct
-{
-    char *device;
-    snd_pcm_format_t format; /* sample format */
-    unsigned int sizeof_format;
-    unsigned int rate ; /* stream rate */
-    unsigned int channels; /* count of channels */
-    unsigned int period_time; /* period time in microseconds (transfer chunk) */
-    unsigned int buffer_time; /* ring buffer length in microseconds */
-    snd_pcm_sframes_t period_size;
-    snd_pcm_sframes_t buffer_size;
-    int first; /* used in function runCapture */
+/* size of the alsa ring buffer in number of chunks */
+#define ARBSIZE_ON_CHUNKSIZE (3)
 
-    snd_pcm_t *handle;
+struct bass_captureStruct
+{
     snd_pcm_stream_t stream;
     snd_pcm_access_t access;
+    snd_pcm_format_t format; /* sample format */
+    unsigned int nBytesPerSample;
+    unsigned int channels; /* count of channels */
+    snd_pcm_t *handle;
+    char *device;
+    int32_t *buff; /* buffer to store the transfer chunk (same type as
+                      expected data type on the port) */
+    unsigned int rate ; /* stream rate */
+    unsigned int chunkTime; /* period time in microseconds (transfer chunk) */
+    unsigned int arbTime; /* alsa ring buffer length in microseconds */
+    snd_pcm_sframes_t chunkSize;
+    snd_pcm_sframes_t arbSize;
     snd_pcm_hw_params_t *hwparams;
     snd_pcm_sw_params_t *swparams;
 };
 
-int initConstantParameters(bass_ids *ids);
-int initVariableParameters(bass_ids *ids, const char *device,
-                           uint32_t sampleRate, uint32_t chunkTime,
-                           uint32_t nChunksOnPort);
-int createCapture(bass_ids *ids);
-int setHwparams(bass_ids *ids);
-int setSwparams(bass_ids *ids);
-int runCapture(bass_ids *ids);
-int endCapture(bass_ids *ids);
+enum {E_NOMEM = 1, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
+
+#define return_bass_exception(err)                           \
+  do {                                                       \
+    genom_event g;                                           \
+    switch (err) {                                           \
+      case -E_NOMEM: g = bass_e_nomem(self); break;          \
+      case -E_DEVICE: g = bass_e_device(self); break;        \
+      case -E_HWPARAMS: g = bass_e_hwparams(self); break;    \
+      case -E_SWPARAMS: g = bass_e_swparams(self); break;    \
+    }                                                        \
+    return g;                                                \
+  } while(0)
+
+int initCapture(bass_captureStruct **pcap, const char *device,
+                uint32_t sampleRate, uint32_t chunkTime,
+                uint32_t nChunksOnPort);
+int createCapture(bass_captureStruct *cap);
+int setHwparams(bass_captureStruct *cap);
+int setSwparams(bass_captureStruct *cap);
+int runCapture(bass_captureStruct *cap);
+int endCapture(bass_captureStruct **pcap);
 
 #endif /* AUDIOCAPTURE_H */
 

@@ -32,19 +32,13 @@
 #define BASSSTRUCT_IDL
 
 module binaudio {
-    struct chunkStruct {
-        unsigned long   nFramesPerChunk;
-        sequence<long>  left;
-        sequence<long>  right;
-    };
-
     struct portStruct {
-        unsigned long   sampleRate;
-        unsigned long   nChunksOnPort;
-        unsigned long   nFramesPerChunk;
-        unsigned long   lastChunkIndex;
-        sequence<long>  left;
-        sequence<long>  right;
+        unsigned long       sampleRate;
+        unsigned long       nChunksOnPort;
+        unsigned long       nFramesPerChunk;
+        unsigned long long  lastChunkIndex;
+        sequence<long>      left;
+        sequence<long>      right;
     };
 };
 

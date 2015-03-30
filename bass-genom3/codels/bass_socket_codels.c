@@ -1,4 +1,4 @@
-/*  Copyright (c) 2014, LAAS/CNRS
+/* Copyright (c) 2014, LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -133,8 +133,7 @@ initModule(genom_context self)
  * Yields to bass_recv, bass_ether.
  */
 genom_event
-Transfer(const bass_ids *ids, const bass_Audio *Audio,
-         genom_context self)
+Transfer(const bass_Audio *Audio, genom_context self)
 {
     char *result;
     int32_t position, len, j, blocksToSend;
@@ -217,22 +216,22 @@ Transfer(const bass_ids *ids, const bass_Audio *Audio,
 
                                 blocksToSend = Audio->data(self)->lastChunkIndex - clientIndex;
                                 printf("Server Index: %d\n", Audio->data(self)->lastChunkIndex);
-                                if(blocksToSend>ids->nChunksOnPort)
+                                if(blocksToSend>Audio->data(self)->nChunksOnPort)
                                 {
-                                    blocksToSend = ids->nChunksOnPort;
+                                    blocksToSend = Audio->data(self)->nChunksOnPort;
                                 }
                                 printf("Blocks to send: %d\n", blocksToSend);
-                                CAPTURE_PERIOD_SIZE = (ids->sampleRate*ids->chunkTime)/1000;
+                                CAPTURE_PERIOD_SIZE = Audio->data(self)->nFramesPerChunk;
                                 printf("CAPTURE_PERIOD_SIZE: %d\n", CAPTURE_PERIOD_SIZE);   
-                                CAPTURE_CHANNELS = 2; //ids->params->channels; TODO: Change the hardcoded 2!!!
+                                CAPTURE_CHANNELS = 2;
                                 printf("CAPTURE_CHANNELS: %d\n", CAPTURE_CHANNELS);
                                 message = malloc(((CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+2)*sizeof(int32_t)); //44100(samples for 1/2 sec)*0.5(sec)*2(channels)
-                                printf("ids->nChunksOnPort: %d\n", ids->nChunksOnPort);
+                                printf("nChunksOnPort: %d\n", Audio->data(self)->nChunksOnPort);
                                 printf("Audio->data(self)->left._length: %d\n", Audio->data(self)->left._length);
                                 for(i=0; i<(CAPTURE_PERIOD_SIZE*blocksToSend); i++)
                                 {
-                                    message[1+i] = *(Audio->data(self)->left._buffer+((CAPTURE_PERIOD_SIZE*(ids->nChunksOnPort-blocksToSend))+i));
-                                    message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Audio->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(ids->nChunksOnPort-blocksToSend))+i));
+                                    message[1+i] = *(Audio->data(self)->left._buffer+((CAPTURE_PERIOD_SIZE*(Audio->data(self)->nChunksOnPort-blocksToSend))+i));
+                                    message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Audio->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(Audio->data(self)->nChunksOnPort-blocksToSend))+i));
                                 }
                                 message[0] = blocksToSend;
                                 message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Audio->data(self)->lastChunkIndex;

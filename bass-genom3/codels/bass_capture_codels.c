@@ -1,4 +1,4 @@
-/*  Copyright (c) 2014, LAAS/CNRS
+/* Copyright (c) 2014, LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,42 +38,14 @@
 
 /* --- Task capture ----------------------------------------------------- */
 
-
-/** Codel start_capture of task capture.
- *
- * Triggered by bass_start.
- * Yields to bass_ether.
- */
-genom_event
-start_capture(bass_ids *ids, genom_context self)
-{
-    /* Set constant capture parameters */
-    initConstantParameters(ids);
-    return bass_ether;
-}
-
-
-/** Codel stop_capture of task capture.
- *
- * Triggered by bass_stop.
- * Yields to bass_ether.
- */
-genom_event
-stop_capture(bass_ids *ids, genom_context self)
-{
-    /*free(ids->device);*/
-    free(ids->params);
-    return bass_ether;
-}
-
-
 /* --- Activity Acquire ------------------------------------------------- */
 
 /** Codel startAcquire of activity Acquire.
  *
  * Triggered by bass_start.
  * Yields to bass_exec, bass_ether.
- * Throws bass_e_chunkTime, bass_e_nomem.
+ * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
+ * bass_e_hwparams, bass_e_swparams.
  */
 genom_event
 startAcquire(const char *device, uint32_t sampleRate,
@@ -83,21 +55,19 @@ startAcquire(const char *device, uint32_t sampleRate,
     int err;
     uint32_t nFramesPerChunk;
 
-    /* Set variable capture parameters */
-    initVariableParameters(ids, device, sampleRate, chunkTime, nChunksOnPort);
-
-    /* Prepare the Port and the IDS */
+    /* Prepare the Port */
     nFramesPerChunk = sampleRate*chunkTime/1000;
-    if (initCurrentChunk(ids, nFramesPerChunk) ||
-        initPort(Audio, sampleRate, nChunksOnPort, nFramesPerChunk, self))
-        return bass_e_nomem(self);
+    if ((err = initPort(Audio, sampleRate, nFramesPerChunk, nChunksOnPort,
+                        self)) < 0)
+        return_bass_exception(err);
 
     /* Start the capture */
-    if ((err = createCapture(ids)) < 0) {
-        printf("Could not start acquisition.\n");
-        return bass_ether;
+    initCapture(&(ids->cap), device, sampleRate, chunkTime, nChunksOnPort);
+    if ((err = createCapture(ids->cap)) < 0) {
+        endCapture(&(ids->cap));
+        return_bass_exception(err);
     }
-    printf("Acquisition started.\n");
+
     return bass_exec;
 }
 
@@ -105,7 +75,8 @@ startAcquire(const char *device, uint32_t sampleRate,
  *
  * Triggered by bass_exec.
  * Yields to bass_exec, bass_stop.
- * Throws bass_e_chunkTime, bass_e_nomem.
+ * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
+ * bass_e_hwparams, bass_e_swparams.
  */
 genom_event
 execAcquire(bass_ids *ids, const bass_Audio *Audio,
@@ -114,11 +85,13 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
     int err;
 
     /* Get the data */
-    if ((err = runCapture(ids)) < 0)
-        return bass_stop;
+    if ((err = runCapture(ids->cap)) < 0) {
+        endCapture(&(ids->cap));
+        return_bass_exception(err);
+    }
 
     /* Publish the data on the Port */
-    publishPort(Audio, ids, self);
+    publishPort(Audio, ids->cap, self);
     return bass_exec;
 }
 
@@ -126,12 +99,12 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
  *
  * Triggered by bass_stop.
  * Yields to bass_ether.
- * Throws bass_e_chunkTime, bass_e_nomem.
+ * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
+ * bass_e_hwparams, bass_e_swparams.
  */
 genom_event
 stopAcquire(bass_ids *ids, genom_context self)
 {
-    endCapture(ids);
-    printf("Acquisition stopped.\n");
+    endCapture(&(ids->cap));
     return bass_ether;
 }

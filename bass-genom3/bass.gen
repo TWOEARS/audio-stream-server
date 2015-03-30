@@ -1,4 +1,4 @@
-/*/ Copyright (c) 2014, LAAS/CNRS
+/*/Copyright (c) 2014, LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,24 +39,16 @@ component bass {
     codels-require  "alsa";
 
     /* ---IDS declaration--- */
-    native alsaParamsStruct;
+    native captureStruct;
     ids {
-        string                  device;
-        unsigned long           sampleRate;
-        unsigned long           chunkTime;
-        unsigned long           nChunksOnPort;
-        alsaParamsStruct        params;
-        binaudio::chunkStruct   currentChunk;
+        captureStruct  cap;
     };
 
     /* ---Exceptions declaration--- */
-    exception e_chunkTime, e_nomem; /* TODO: more exceptions */
+    exception e_chunkTime, e_nomem, e_device, e_hwparams, e_swparams;
 
     /* ---Task declaration--- */
-    task capture {
-        codel <start>   start_capture(inout ::ids) yield ether;
-        codel <stop>    stop_capture(inout ::ids) yield ether;
-    };
+    task capture;
 
     task socket {
         period      5ms;
@@ -75,6 +67,7 @@ component bass {
       ) {
         doc     "Acquire data from an audio device and stream it on a port";
         task    capture;
+        interrupts  Acquire;
 
         validate           validateAcquire(local in sampleRate,
                                local in chunkTime);
@@ -85,17 +78,17 @@ component bass {
                                yield exec, stop;
         codel <stop>       stopAcquire(inout ::ids) yield ether;
 
-        throw   e_chunkTime, e_nomem;
+        throw   e_chunkTime, e_nomem, e_device, e_hwparams, e_swparams;
     };
 
     function Stop() {
-        doc         "Stop audio data acquisition";
+        doc         "Stop acquisition of audio data";
         interrupts  Acquire;
     };
 
     activity DedicatedSocket() {
         codel <start>           initModule() yield ether, recv;
-        async codel <recv>      Transfer(in ::ids, port in Audio) yield recv, ether;
+        async codel <recv>      Transfer(port in Audio) yield recv, ether;
 
         task    socket;
 	};

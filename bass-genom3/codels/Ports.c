@@ -34,40 +34,19 @@
 #include "bass_c_types.h"
 #include "AudioCapture.h"
 
-/* initCurrentChunk --------------------------------------------------------- */
-
-int initCurrentChunk(bass_ids *ids, uint32_t size)
-{
-    int ii;
-
-    if (genom_sequence_reserve(&(ids->currentChunk.left), size) ||
-        genom_sequence_reserve(&(ids->currentChunk.right), size))
-        return -1;
-
-    ids->currentChunk.left._length = size;
-    ids->currentChunk.right._length = size;
-    ids->currentChunk.nFramesPerChunk = size;
-
-    for (ii = 0; ii < size; ii++) {
-        ids->currentChunk.left._buffer[ii] = 0;
-        ids->currentChunk.right._buffer[ii] = 0;
-    }
-    return 0;
-}
-
 /* initPort ----------------------------------------------------------------- */
 
 int initPort(const bass_Audio *Audio, uint32_t sampleRate,
-             uint32_t nChunksOnPort, uint32_t nFramesPerChunk,
+             uint32_t nFramesPerChunk, uint32_t nChunksOnPort,
              genom_context self)
 {
-    uint32_t fop;
+    uint32_t fop; /* total amount of Frames On the Port */
     int ii;
 
     fop =  nFramesPerChunk * nChunksOnPort;
     if (genom_sequence_reserve(&(Audio->data(self)->left), fop) ||
         genom_sequence_reserve(&(Audio->data(self)->right), fop))
-        return -1;
+        return -E_NOMEM;
 
     Audio->data(self)->left._length = fop;
     Audio->data(self)->right._length = fop;
@@ -86,39 +65,34 @@ int initPort(const bass_Audio *Audio, uint32_t sampleRate,
 
 /* publishPort ------------------------------------------------------------- */
 
-int publishPort(const bass_Audio *Audio, bass_ids *ids, genom_context self)
+int publishPort(const bass_Audio *Audio, bass_captureStruct *cap,
+                genom_context self)
 {
-    uint32_t fop;
+    binaudio_portStruct *data;
+    uint32_t fpc; /* amount of Frames Per Chunk */
+    uint32_t fop; /* total amount of Frames On the Port */
+    uint32_t bps; /* amout of Bytes Per Sample */
+    int pos, ii;
 
-    fop = Audio->data(self)->nChunksOnPort *
-          Audio->data(self)->nFramesPerChunk;
+    data = Audio->data(self);
+    fpc = data->nFramesPerChunk;
+    fop = fpc * data->nChunksOnPort;
+    bps = cap->nBytesPerSample;
 
-    memmove(Audio->data(self)->left._buffer,
-            Audio->data(self)->left._buffer +
-            ids->currentChunk.nFramesPerChunk,
-            (fop - ids->currentChunk.nFramesPerChunk)*
-            ids->params->sizeof_format);
-    memmove(Audio->data(self)->right._buffer,
-            Audio->data(self)->right._buffer +
-            ids->currentChunk.nFramesPerChunk,
-            (fop - ids->currentChunk.nFramesPerChunk)*
-            ids->params->sizeof_format);
+    memmove(data->left._buffer, data->left._buffer + fpc, (fop - fpc)*bps);
+    memmove(data->right._buffer, data->right._buffer + fpc, (fop - fpc)*bps);
 
     /*   **1**  **2**  **3**  **4**  **5** **6**   */
     /*   | <-   |                          |new    */
-    /*   memmove                           memcpy  */
+    /*   memmove                          for loop */
     /*   **2**  **3**  **4**  **5**  **6** **7**   */
 
-    memcpy(Audio->data(self)->left._buffer + fop -
-           ids->currentChunk.nFramesPerChunk,
-           ids->currentChunk.left._buffer,
-           ids->currentChunk.nFramesPerChunk*ids->params->sizeof_format);
-    memcpy(Audio->data(self)->right._buffer + fop -
-           ids->currentChunk.nFramesPerChunk,
-           ids->currentChunk.right._buffer,
-           ids->currentChunk.nFramesPerChunk*ids->params->sizeof_format);
+    for (ii = 0, pos = fop - fpc; pos < fop; ii++, pos++) {
+        data->left._buffer[pos] = cap->buff[cap->channels*ii];
+        data->right._buffer[pos] = cap->buff[cap->channels*ii + 1];
+    }
 
-    Audio->data(self)->lastChunkIndex++;
+    data->lastChunkIndex++;
     Audio->write(self);
     return 0;
 }

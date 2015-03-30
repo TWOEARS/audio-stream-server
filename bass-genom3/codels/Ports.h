@@ -33,10 +33,10 @@
 
 #include "bass_c_types.h"
 
-int initCurrentChunk(bass_ids *ids, uint32_t size);
 int initPort(const bass_Audio *Audio, uint32_t sampleRate,
-             uint32_t nChunksOnPort, uint32_t nFramesPerChunk,
+             uint32_t nFramesPerChunk, uint32_t nChunksOnPort,
              genom_context self);
-int publishPort(const bass_Audio *Audio, bass_ids *ids, genom_context self);
+int publishPort(const bass_Audio *Audio, bass_captureStruct *cap,
+                genom_context self);
 
 #endif /* PORTS_H */
