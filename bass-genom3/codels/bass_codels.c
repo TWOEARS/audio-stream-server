@@ -30,24 +30,3 @@
 #include "acbass.h"
 
 #include "bass_c_types.h"
-
-
-/* --- Activity Acquire ------------------------------------------------- */
-
-/** Validation codel validateAcquire of activity Acquire.
- *
- * Returns genom_ok.
- * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
- * bass_e_hwparams, bass_e_swparams.
- */
-genom_event
-validateAcquire(uint32_t sampleRate, uint32_t chunkTime,
-                genom_context self)
-{
-    /* Check if the chunk time (in milliseconds) corresponds to a round number
-       of samples with the given sample rate */
-    if ((sampleRate*chunkTime) % 1000 != 0)
-        return bass_e_chunkTime(self);
-
-    return genom_ok;
-}

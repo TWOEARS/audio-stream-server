@@ -50,10 +50,8 @@ struct bass_captureStruct
     int32_t *buff; /* buffer to store the transfer chunk (same type as
                       expected data type on the port) */
     unsigned int rate ; /* stream rate */
-    unsigned int chunkTime; /* period time in microseconds (transfer chunk) */
-    unsigned int arbTime; /* alsa ring buffer length in microseconds */
-    snd_pcm_sframes_t chunkSize;
-    snd_pcm_sframes_t arbSize;
+    snd_pcm_uframes_t chunkSize; /* Size of transfer chunks in frames */
+    snd_pcm_uframes_t arbSize; /* Size of the alsa ring buffer in frames */
     snd_pcm_hw_params_t *hwparams;
     snd_pcm_sw_params_t *swparams;
 };
@@ -73,7 +71,7 @@ enum {E_NOMEM = 1, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
   } while(0)
 
 int initCapture(bass_captureStruct **pcap, const char *device,
-                uint32_t sampleRate, uint32_t chunkTime,
+                uint32_t sampleRate, uint32_t nFramesPerChunk,
                 uint32_t nChunksOnPort);
 int createCapture(bass_captureStruct *cap);
 int setHwparams(bass_captureStruct *cap);

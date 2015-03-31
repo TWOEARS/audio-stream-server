@@ -44,25 +44,25 @@
  *
  * Triggered by bass_start.
  * Yields to bass_exec, bass_ether.
- * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
- * bass_e_hwparams, bass_e_swparams.
+ * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
+ * bass_e_swparams.
  */
 genom_event
 startAcquire(const char *device, uint32_t sampleRate,
-             uint32_t chunkTime, uint32_t nChunksOnPort, bass_ids *ids,
-             const bass_Audio *Audio, genom_context self)
+             uint32_t nFramesPerChunk, uint32_t nChunksOnPort,
+             bass_ids *ids, const bass_Audio *Audio,
+             genom_context self)
 {
     int err;
-    uint32_t nFramesPerChunk;
 
     /* Prepare the Port */
-    nFramesPerChunk = sampleRate*chunkTime/1000;
     if ((err = initPort(Audio, sampleRate, nFramesPerChunk, nChunksOnPort,
                         self)) < 0)
         return_bass_exception(err);
 
     /* Start the capture */
-    initCapture(&(ids->cap), device, sampleRate, chunkTime, nChunksOnPort);
+    initCapture(&(ids->cap), device, sampleRate, nFramesPerChunk,
+                nChunksOnPort);
     if ((err = createCapture(ids->cap)) < 0) {
         endCapture(&(ids->cap));
         return_bass_exception(err);
@@ -75,8 +75,8 @@ startAcquire(const char *device, uint32_t sampleRate,
  *
  * Triggered by bass_exec.
  * Yields to bass_exec, bass_stop.
- * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
- * bass_e_hwparams, bass_e_swparams.
+ * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
+ * bass_e_swparams.
  */
 genom_event
 execAcquire(bass_ids *ids, const bass_Audio *Audio,
@@ -99,8 +99,8 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
  *
  * Triggered by bass_stop.
  * Yields to bass_ether.
- * Throws bass_e_chunkTime, bass_e_nomem, bass_e_device,
- * bass_e_hwparams, bass_e_swparams.
+ * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
+ * bass_e_swparams.
  */
 genom_event
 stopAcquire(bass_ids *ids, genom_context self)

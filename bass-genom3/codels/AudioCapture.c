@@ -45,7 +45,7 @@
 /* initCapture -------------------------------------------------------------- */
 
 int initCapture(bass_captureStruct **pcap, const char *device,
-                uint32_t sampleRate, uint32_t chunkTime,
+                uint32_t sampleRate, uint32_t nFramesPerChunk,
                 uint32_t nChunksOnPort)
 {
     bass_captureStruct *cap;
@@ -65,8 +65,8 @@ int initCapture(bass_captureStruct **pcap, const char *device,
     cap->device = strdup(device);
     cap->buff = NULL;
     cap->rate = (unsigned int) sampleRate;
-    cap->chunkTime = (unsigned int) chunkTime*1000;
-    cap->arbTime = ARBSIZE_ON_CHUNKSIZE * cap->chunkTime;
+    cap->chunkSize = (snd_pcm_uframes_t) nFramesPerChunk;
+    cap->arbSize = ARBSIZE_ON_CHUNKSIZE * cap->chunkSize;
     return 0;
 }
 
@@ -120,9 +120,9 @@ int createCapture(bass_captureStruct *cap)
 
 int setHwparams(bass_captureStruct *cap)
 {
-    int err, dir;
-    snd_pcm_uframes_t size;
-    unsigned int rrate, rarbTime, rchunkTime;
+    int err;
+    unsigned int rrate;
+    snd_pcm_uframes_t rarbSize, rchunkSize;
 
     snd_pcm_hw_params_alloca(&(cap->hwparams));
 
@@ -159,7 +159,7 @@ int setHwparams(bass_captureStruct *cap)
     /* Set the stream rate */
     rrate = cap->rate;
     if ((err = snd_pcm_hw_params_set_rate_near(cap->handle, cap->hwparams,
-                                               &rrate, 0)) < 0) {
+                                               &rrate, NULL)) < 0) {
         fprintf(stderr, "Rate %iHz not available: %s\n", cap->rate,
                 snd_strerror(err));
         return err;
@@ -171,49 +171,36 @@ int setHwparams(bass_captureStruct *cap)
     }
 
     /* Set the ALSA ring buffer time */
-    rarbTime = (unsigned int) cap->arbTime;
-    if ((err = snd_pcm_hw_params_set_buffer_time_near(cap->handle,
+    rarbSize = cap->arbSize;
+    if ((err = snd_pcm_hw_params_set_buffer_size_near(cap->handle,
                                                       cap->hwparams,
-                                                      &rarbTime, &dir))
-        < 0) {
-        fprintf(stderr, "Unable to set buffer time %i: %s\n", cap->arbTime,
-                snd_strerror(err));
+                                                      &rarbSize)) < 0) {
+        fprintf(stderr, "Unable to set buffer size %d: %s\n",
+                (int) cap->arbSize, snd_strerror(err));
         return err;
     }
-    if (rarbTime != cap->arbTime) {
-        fprintf(stderr, "Buffer time doesn't match "
-                "(requested %i microseconds, get %i microseconds)\n",
-                cap->arbTime, rarbTime);
+    if (rarbSize != cap->arbSize) {
+        fprintf(stderr, "Buffer size doesn't match "
+                "(requested %d frames, get %d frames)\n",
+                (int) cap->arbSize, (int) rarbSize);
         return -EINVAL;
     }
-    if ((err = snd_pcm_hw_params_get_buffer_size(cap->hwparams, &size)) < 0) {
-        fprintf(stderr, "Unable to get buffer size: %s\n", snd_strerror(err));
-        return err;
-    }
-    cap->arbSize = (snd_pcm_sframes_t) size;
 
     /* Set the period time (transfer chunk) */
-    rchunkTime = cap->chunkTime;
-    if ((err = snd_pcm_hw_params_set_period_time_near(cap->handle,
+    rchunkSize = cap->chunkSize;
+    if ((err = snd_pcm_hw_params_set_period_size_near(cap->handle,
                                                       cap->hwparams,
-                                                      &rchunkTime, &dir))
-        < 0) {
-        fprintf(stderr, "Unable to set period time %i: %s\n", cap->chunkTime,
-                snd_strerror(err));
+                                                      &rchunkSize, NULL)) < 0) {
+        fprintf(stderr, "Unable to set period size %d: %s\n",
+                (int) cap->chunkSize, snd_strerror(err));
         return err;
     }
-    if (rchunkTime != cap->chunkTime) {
-        fprintf(stderr, "Period time doesn't match "
-                "(requested %i microseconds, get %i microseconds)\n",
-                cap->chunkTime, rchunkTime);
+    if (rchunkSize != cap->chunkSize) {
+        fprintf(stderr, "Period size doesn't match "
+                "(requested %d frames, get %d frames)\n",
+                (int) cap->chunkSize, (int) rchunkSize);
         return -EINVAL;
     }
-    if ((err = snd_pcm_hw_params_get_period_size(cap->hwparams, &size, &dir))
-        < 0) {
-        fprintf(stderr, "Unable to get period size: %s\n", snd_strerror(err));
-        return err;
-    }
-    cap->chunkSize = (snd_pcm_sframes_t) size;
 
     /* Write the parameters to the device */
     if ((err = snd_pcm_hw_params(cap->handle, cap->hwparams)) < 0) {
