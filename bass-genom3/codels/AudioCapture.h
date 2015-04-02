@@ -56,13 +56,14 @@ struct bass_captureStruct
     snd_pcm_sw_params_t *swparams;
 };
 
-enum {E_NOMEM = 1, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
+enum {E_NOMEM = 1, E_NODEVICE, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
 
 #define return_bass_exception(err)                           \
   do {                                                       \
     genom_event g;                                           \
     switch (err) {                                           \
       case -E_NOMEM: g = bass_e_nomem(self); break;          \
+      case -E_NODEVICE: g = bass_e_nodevice(self); break;    \
       case -E_DEVICE: g = bass_e_device(self); break;        \
       case -E_HWPARAMS: g = bass_e_hwparams(self); break;    \
       case -E_SWPARAMS: g = bass_e_swparams(self); break;    \
@@ -70,6 +71,7 @@ enum {E_NOMEM = 1, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
     return g;                                                \
   } while(0)
 
+int listCaptureDevices(void);
 int initCapture(bass_captureStruct **pcap, const char *device,
                 uint32_t sampleRate, uint32_t nFramesPerChunk,
                 uint32_t nChunksOnPort);

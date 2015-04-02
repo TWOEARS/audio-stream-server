@@ -42,6 +42,66 @@
  */
 
 
+/* listCaptureDevices ------------------------------------------------------- */
+
+int listCaptureDevices(void)
+{
+    snd_ctl_t *handle;
+    int card, err, dev;
+    snd_ctl_card_info_t *info;
+    snd_pcm_info_t *pcminfo;
+    snd_ctl_card_info_alloca(&info);
+    snd_pcm_info_alloca(&pcminfo);
+
+    card = -1;
+    if (snd_card_next(&card) < 0 || card < 0) {
+        fprintf(stderr, "No soundcards found...\n");
+        return -E_NODEVICE;
+    }
+    while (card >= 0) {
+        char name[32];
+        sprintf(name, "hw:%d", card);
+        if ((err = snd_ctl_open(&handle, name, 0)) < 0) {
+            fprintf(stderr, "Error in control open (%i): %s\n", card,
+                    snd_strerror(err));
+            goto next_card;
+        }
+        if ((err = snd_ctl_card_info(handle, info)) < 0) {
+            fprintf(stderr, "Error in control hardware info (%i): %s\n", card,
+                    snd_strerror(err));
+            snd_ctl_close(handle);
+            goto next_card;
+        }
+        dev = -1;
+        while (1) {
+            if (snd_ctl_pcm_next_device(handle, &dev) < 0)
+                fprintf(stderr, "Error in snd_ctl_pcm_next_device\n");
+            if (dev < 0)
+                break;
+            snd_pcm_info_set_device(pcminfo, dev);
+            snd_pcm_info_set_subdevice(pcminfo, 0);
+            snd_pcm_info_set_stream(pcminfo, SND_PCM_STREAM_CAPTURE);
+            if ((err = snd_ctl_pcm_info(handle, pcminfo)) < 0) {
+                if (err != -ENOENT)
+                    fprintf(stderr,
+                            "Error in control digital audio info (%i): %s",
+                            card, snd_strerror(err));
+                continue;
+            }
+            fprintf(stdout, "hw:%i,%i [%s] [%s]\n", card, dev,
+                    snd_ctl_card_info_get_id(info),
+                    snd_pcm_info_get_id(pcminfo));
+        }
+        snd_ctl_close(handle);
+    next_card:
+        if (snd_card_next(&card) < 0) {
+            fprintf(stderr, "Error in snd_card_next\n");
+            break;
+        }
+    }
+    return 0;
+}
+
 /* initCapture -------------------------------------------------------------- */
 
 int initCapture(bass_captureStruct **pcap, const char *device,

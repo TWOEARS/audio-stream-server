@@ -36,7 +36,7 @@ component bass {
     lang            "c";
     require         "genom3 >= 2.99.24";
     provides        bassInterface;
-    codels-require  "alsa";
+    codels-require  "alsa >= 1.0.25";
 
     /* ---IDS declaration--- */
     native captureStruct;
@@ -45,7 +45,7 @@ component bass {
     };
 
     /* ---Exceptions declaration--- */
-    exception e_nomem, e_device, e_hwparams, e_swparams;
+    exception e_nomem, e_nodevice, e_device, e_hwparams, e_swparams;
 
     /* ---Task declaration--- */
     task capture;
@@ -59,8 +59,15 @@ component bass {
     };
 
     /* ---Services declaration--- */
+    function ListDevices() {
+        doc     "Print available devices for sound capture on standard output";
+
+        codel   codelListDevices();
+        throw   e_nodevice;
+    };
+
     activity Acquire(
-      in string device = "hw:1,0" : "Name of the sound device",
+      in string device = "hw:1,0" : "ALSA name of the sound device",
       in unsigned long sampleRate = 44100 : "Sample rate in Hz",
       in unsigned long nFramesPerChunk = 2205 : "Chunk size in frames",
       in unsigned long nChunksOnPort = 20 : "Port size in chunks"

@@ -30,3 +30,21 @@
 #include "acbass.h"
 
 #include "bass_c_types.h"
+#include "AudioCapture.h"
+
+
+/* --- Function ListDevices --------------------------------------------- */
+
+/** Codel codelListDevices of function ListDevices.
+ *
+ * Returns genom_ok.
+ * Throws bass_e_nodevice.
+ */
+genom_event
+codelListDevices(genom_context self)
+{
+    int err;
+
+    if ((err = listCaptureDevices()) < 0)
+        return_bass_exception(err);
+}
