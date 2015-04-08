@@ -58,7 +58,7 @@ int initPort(const bass_Audio *Audio, uint32_t sampleRate,
     Audio->data(self)->sampleRate = sampleRate;
     Audio->data(self)->nChunksOnPort = nChunksOnPort;
     Audio->data(self)->nFramesPerChunk = nFramesPerChunk;
-    Audio->data(self)->lastChunkIndex = 0;
+    Audio->data(self)->lastFrameIndex = 0;
     Audio->write(self);
     return 0;
 }
@@ -92,7 +92,7 @@ int publishPort(const bass_Audio *Audio, bass_captureStruct *cap,
         data->right._buffer[pos] = cap->buff[cap->channels*ii + 1];
     }
 
-    data->lastChunkIndex++;
+    data->lastFrameIndex += fpc;
     Audio->write(self);
     return 0;
 }

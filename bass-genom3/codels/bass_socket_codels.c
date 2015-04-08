@@ -137,7 +137,7 @@ Transfer(const bass_Audio *Audio, genom_context self)
 {
     char *result;
     int32_t position, len, j, blocksToSend;
-    int32_t pow, clientIndex, auxpow;
+    int32_t pow, clientIndex, serverIndex, auxpow;
     int32_t CAPTURE_PERIOD_SIZE, CAPTURE_CHANNELS;
     if(end==0)
     {
@@ -213,9 +213,9 @@ Transfer(const bass_Audio *Audio, genom_context self)
                                     clientIndex = clientIndex + (buffer[position+i]-48)*pow;
                                 }
                                 printf("clientIndex = %d\n", clientIndex);
-
-                                blocksToSend = Audio->data(self)->lastChunkIndex - clientIndex;
-                                printf("Server Index: %d\n", Audio->data(self)->lastChunkIndex);
+                                serverIndex = Audio->data(self)->lastFrameIndex / Audio->data(self)->nFramesPerChunk;
+                                blocksToSend = serverIndex - clientIndex;
+                                printf("Server Index: %d\n", serverIndex);
                                 if(blocksToSend>Audio->data(self)->nChunksOnPort)
                                 {
                                     blocksToSend = Audio->data(self)->nChunksOnPort;
@@ -234,7 +234,7 @@ Transfer(const bass_Audio *Audio, genom_context self)
                                     message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Audio->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(Audio->data(self)->nChunksOnPort-blocksToSend))+i));
                                 }
                                 message[0] = blocksToSend;
-                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = Audio->data(self)->lastChunkIndex;
+                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = serverIndex;
                                 n = send(poll_set[fd_index].fd, message, (CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2)*4, NULL);
                                 if(n>0)
                                 {

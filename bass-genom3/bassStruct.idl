@@ -36,7 +36,7 @@ module binaudio {
         unsigned long       sampleRate;
         unsigned long       nChunksOnPort;
         unsigned long       nFramesPerChunk;
-        unsigned long long  lastChunkIndex;
+        unsigned long long  lastFrameIndex;
         sequence<long>      left;
         sequence<long>      right;
     };
