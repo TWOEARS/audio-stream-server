@@ -1,5 +1,6 @@
 *~
 Makefile.am
+!bass-genom3/codels/Makefile.am
 Makefile.in
 bas[sc]-genom3/aclocal.m4
 bas[sc]-genom3/autoconf/
