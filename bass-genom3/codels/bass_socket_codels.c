@@ -31,6 +31,8 @@
 
 #include "bass_c_types.h"
 
+#include "Sockets.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
@@ -40,16 +42,20 @@
 
 #define MessageBufferSize	512
 #define POLL_SIZE           32
+#define infoSize            4   //int32_t x2 and int64_t x1 => int32_t xinfoSize
 int sockfd, newsockfd, portno, clilen, n, yes=1, good=0, bad=0;
 uint32_t total=0;
 struct sockaddr_in serv_addr, cli_addr;
 char buffer[MessageBufferSize];
-int32_t *message, *aux;
+int32_t *message, *aux, *messageInfo;
+int64_t sizeofMessage;
 struct pollfd poll_set[POLL_SIZE];
 int numfds = 0;
 int max_fd = 0;
 int fd_index, i, end=0;
 uint32_t num = 1;
+
+
 /* --- Task socket ------------------------------------------------------ */
 
 
@@ -74,7 +80,7 @@ sInitModule(genom_context self)
  * Yields to bass_ether, bass_recv.
  */
 genom_event
-initModule(genom_context self)
+initModule(const bass_Audio *Audio, genom_context self)
 {
     uint32_t i;
 	//printf("\nSending information.\n");
@@ -124,6 +130,12 @@ initModule(genom_context self)
 
     end = 0;
 
+    sizeofMessage = 2*(Audio->data(self)->nChunksOnPort*Audio->data(self)->nFramesPerChunk)*sizeof(int32_t);
+    message = malloc(sizeofMessage);
+    aux = malloc(sizeofMessage);
+
+    messageInfo = malloc(infoSize*sizeof(int32_t));
+
     return bass_recv;
 }
 
@@ -139,6 +151,11 @@ Transfer(const bass_Audio *Audio, genom_context self)
     int32_t position, len, j, blocksToSend;
     int32_t pow, clientIndex, serverIndex, auxpow;
     int32_t CAPTURE_PERIOD_SIZE, CAPTURE_CHANNELS;
+    int64_t nfr;
+    int N, loss, nFrames;
+    int32_t *l, *li, *r, *ri;
+    binaudio_portStruct *data;
+
     if(end==0)
     {
         good = 0;
@@ -194,78 +211,77 @@ Transfer(const bass_Audio *Audio, genom_context self)
 
                         if(strstr(buffer, "Read Port"))
                         {
-                            if(result = strstr(buffer, "Index"))
+                            N = (int) findValue(buffer, "N");
+                            printf("[DEBUG]: N is %d\n", N);
+                            nfr = findValue(buffer, "nfr");
+                            printf("[DEBUG]: nfr is %d\n", nfr);
+                            if(N>0 && nfr>0)
                             {
-                                position = (result - buffer) + strlen("Index ");
-                                //printf("position: %d\n", position);
-                                len = strlen(buffer) - position - 1;
-                                //printf("len: %d\n", len);
-                                auxpow = len-1;
-                                clientIndex = 0;
-                                for(i=0; i<len; i++)
-                                {
-                                    pow = 1;
-                                    for(j=0; j<auxpow; j++)
-                                    {
-                                        pow = pow*10;
-                                    }
-                                    auxpow--;
-                                    clientIndex = clientIndex + (buffer[position+i]-48)*pow;
-                                }
-                                printf("clientIndex = %d\n", clientIndex);
-                                serverIndex = Audio->data(self)->lastFrameIndex / Audio->data(self)->nFramesPerChunk;
-                                blocksToSend = serverIndex - clientIndex;
-                                printf("Server Index: %d\n", serverIndex);
-                                if(blocksToSend>Audio->data(self)->nChunksOnPort)
-                                {
-                                    blocksToSend = Audio->data(self)->nChunksOnPort;
-                                }
-                                printf("Blocks to send: %d\n", blocksToSend);
-                                CAPTURE_PERIOD_SIZE = Audio->data(self)->nFramesPerChunk;
-                                printf("CAPTURE_PERIOD_SIZE: %d\n", CAPTURE_PERIOD_SIZE);   
-                                CAPTURE_CHANNELS = 2;
-                                printf("CAPTURE_CHANNELS: %d\n", CAPTURE_CHANNELS);
-                                message = malloc(((CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+2)*sizeof(int32_t)); //44100(samples for 1/2 sec)*0.5(sec)*2(channels)
-                                printf("nChunksOnPort: %d\n", Audio->data(self)->nChunksOnPort);
-                                printf("Audio->data(self)->left._length: %d\n", Audio->data(self)->left._length);
-                                for(i=0; i<(CAPTURE_PERIOD_SIZE*blocksToSend); i++)
-                                {
-                                    message[1+i] = *(Audio->data(self)->left._buffer+((CAPTURE_PERIOD_SIZE*(Audio->data(self)->nChunksOnPort-blocksToSend))+i));
-                                    message[1+(CAPTURE_PERIOD_SIZE*blocksToSend)+i] = *(Audio->data(self)->right._buffer+((CAPTURE_PERIOD_SIZE*(Audio->data(self)->nChunksOnPort-blocksToSend))+i));
-                                }
-                                message[0] = blocksToSend;
-                                message[(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)+1] = serverIndex;
-                                n = send(poll_set[fd_index].fd, message, (CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2)*4, NULL);
+                                /* Read data from the port */
+                                data = Audio->data(self);
+
+                                nFrames = getAudioData(data, message, N, &nfr, &loss);
+
+                                /*Send information related to Data*/
+                                messageInfo[0] = nFrames;
+                                messageInfo[1] = loss;
+                                messageInfo[2] = (int32_t) nfr; // get the low 32 bits
+                                messageInfo[3] = (nfr >> 32);   // get the high 32 bits
+
+                                n = send(poll_set[fd_index].fd, messageInfo, infoSize*sizeof(int32_t), NULL);
+
                                 if(n>0)
                                 {
                                     good++;
                                     printf("SENT: n = %d bytes (%d samples)\n", n, n/4);
                                 }
-                                total = n;
-                                aux = malloc((CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2)*sizeof(int32_t));
-                                while(total<(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS)*4)
+                                total = n/4;
+                                while(total<infoSize)
                                 {
-                                    for(i=0; i<(CAPTURE_PERIOD_SIZE*blocksToSend*CAPTURE_CHANNELS+2); i++)
-                                        {
-                                            aux[i] = message[total/4+i];
-                                        }
-                                    n = send(poll_set[fd_index].fd, aux, i*4, NULL);
+                                    for(i=0; i<(infoSize-total); i++)
+                                    {
+                                        aux[i] = messageInfo[total+i];
+                                    }
+                                    n = send(poll_set[fd_index].fd, aux, i*sizeof(int32_t), NULL);
                                     if(n>0)
                                     {
                                         good++;
-                                        total = total + n;
-                                        printf("SENT: n = %d bytes (%d samples)\tTOTAL: n = %d bytes (%d samples)\n", n, n/4, total, total/4);
+                                        total = total + n/4;
+                                        printf("SENT: n = %d bytes (%d samples)\tTOTAL: n = %d bytes (%d samples)\n", n, n/4, total*4, total);
                                     }
                                     else
                                         bad++;
+                                } 
+                        
+                                /*Send Data*/
+                                printf("nFrames: %d\n", nFrames);
+                
+                                n = send(poll_set[fd_index].fd, message, 2*nFrames*sizeof(int32_t), NULL);
+
+                                if(n>0)
+                                {
+                                    good++;
+                                    printf("SENT: n = %d bytes (%d samples)\n", n, n/4);
                                 }
-                                printf("TOTAL: %d - Tries: %d - Succesfull: %d - Unsuccesfull: %d\n", total, good+bad, good, bad);
-                                free(aux);  
-                                free(message);                           
+                                total = n/4;
+                                while(total<nFrames)
+                                {
+                                    for(i=0; i<(nFrames-total); i++)
+                                    {
+                                        aux[i] = message[total+i];
+                                    }
+                                    n = send(poll_set[fd_index].fd, aux, i*sizeof(int32_t), NULL);
+                                    if(n>0)
+                                    {
+                                        good++;
+                                        total = total + n/4;
+                                        printf("SENT: n = %d bytes (%d samples)\tTOTAL: n = %d bytes (%d samples)\n", n, n/4, total*4, total);
+                                    }
+                                    else
+                                        bad++;
+                                }                                 
                             }
-                        }
-                    for(i=0; i<MessageBufferSize; i++)
-                        buffer[i] = NULL;                        
+                        }                       
                     }
                 }
             }
@@ -288,6 +304,9 @@ genom_event
 closeSocket(genom_context self)
 {
     end = 1;
+    free(message);
+    free(aux);
+    free(messageInfo);
     for(i=0; i<numfds; i++)
         close(poll_set[i].fd);
     printf("Connections closed.\n"); 

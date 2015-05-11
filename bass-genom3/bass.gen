@@ -92,8 +92,8 @@ component bass {
     };
 
     activity DedicatedSocket() {
-        codel <start>           initModule() yield ether, recv;
-        async codel <recv>      Transfer(port in Audio) yield recv, ether;
+        codel <start>           initModule(port out Audio) yield ether, recv;
+        async codel <recv>      Transfer(port out Audio) yield recv, ether;
 
         task    socket;
 	};

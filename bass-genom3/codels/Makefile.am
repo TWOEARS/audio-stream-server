@@ -37,6 +37,8 @@ libbass_codels_la_SOURCES+=     Ports.h
 libbass_codels_la_SOURCES+=     Ports.c
 libbass_codels_la_SOURCES+=     AudioCapture.h
 libbass_codels_la_SOURCES+=     AudioCapture.c
+libbass_codels_la_SOURCES+=     Sockets.h
+libbass_codels_la_SOURCES+=     Sockets.c
 
 
 libbass_codels_la_CPPFLAGS=	$(requires_CFLAGS)
