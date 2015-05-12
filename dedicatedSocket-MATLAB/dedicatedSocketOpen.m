@@ -1,11 +1,12 @@
-function dedicatedSocketOpen(ip)
+function dedicatedSocketOpen(ip, bytesPerFrame)
 global dedicatedSocket;
 
-%Get Capture Configuration:
-dedicatedSocket.captureConfig = GMB_capture_GetCaptureConfig;
-
 dedicatedSocket.p = tcpip(ip,8081);
-%TODO: Don't allow multiple connections per client.     
-dedicatedSocket.p.InputBufferSize = 44100*4*2*4+4;
+%TODO: Don't allow multiple connections per client.  
+if(nargin>1)
+    dedicatedSocket.p.InputBufferSize = bytesPerFrame;
+else
+    dedicatedSocket.p.InputBufferSize = 1048576; %1Mb
+end
 fopen(dedicatedSocket.p); 
 end

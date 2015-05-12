@@ -37,11 +37,12 @@ int64_t findValue(char *buffer, char *string)
     int i=0, j, len=0;
     int32_t pow, auxpow;
     char *startPosition;
-    int64_t value;
+    int64_t value=-1;
 
-    startPosition = strstr(buffer, string) + strlen(string) + 1;
+    startPosition = strstr(buffer, string);
     if(startPosition != NULL)
     {
+        startPosition = startPosition  + strlen(string) + 1;
         while(startPosition[i]>=48 && startPosition[i]<=57)
         {
             i++;

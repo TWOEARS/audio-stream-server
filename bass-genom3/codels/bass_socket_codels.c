@@ -215,7 +215,7 @@ Transfer(const bass_Audio *Audio, genom_context self)
                             printf("[DEBUG]: N is %d\n", N);
                             nfr = findValue(buffer, "nfr");
                             printf("[DEBUG]: nfr is %d\n", nfr);
-                            if(N>0 && nfr>0)
+                            if(N>=0 && nfr>=0)
                             {
                                 /* Read data from the port */
                                 data = Audio->data(self);

@@ -1,42 +1,26 @@
-function [data, newInd, lost] = dedicatedSocketRead(oldInd)
+function [n, loss, nfr, data] = dedicatedSocketRead(N, nfr)
 %function [data] = dedicatedSocketRead(port)
 global dedicatedSocket;
 
-%fprintf(dedicatedSocket.p, strcat('Read Port:', {' '}, num2str(port), '-', ' ', 'Index', ' ', num2str(oldInd)));
-fprintf(dedicatedSocket.p, sprintf('Read Port - Index %d', oldInd));
-
-rate = dedicatedSocket.captureConfig.transfer_rate;
-periodSize = (dedicatedSocket.captureConfig.transfer_rate*dedicatedSocket.captureConfig.chunk_time)/1000;
-nbFrames = ((dedicatedSocket.captureConfig.transfer_rate*dedicatedSocket.captureConfig.chunk_time)/1000)*dedicatedSocket.captureConfig.Port_chunks;
-nbBlocks = dedicatedSocket.captureConfig.Port_chunks;
+fprintf(dedicatedSocket.p, sprintf('Read Port - N %d - nfr %d', N, nfr));
         
 
 %Wait for the first four bytes which contain the number of blocks to read.
 while(dedicatedSocket.p.BytesAvailable<4)
 end
-message=fread(dedicatedSocket.p, 4);
-dedicatedSocket.bytes = (message(1) + message(2)*256 + message(3)*65536 + message(4)*16777216)*2*4*periodSize+4;
+message=fread(dedicatedSocket.p, 16);
+n = message(1) + message(2)*256 + message(3)*65536 + message(4)*16777216;
+dedicatedSocket.bytes = n*2*4;
+loss = message(5) + message(6)*256 + message(7)*65536 + message(8)*16777216;
+nfr = 0;
+for i=0:7
+    nfr = nfr + message(9+i)*power(256, i);
+end
 
 while(dedicatedSocket.p.BytesAvailable<dedicatedSocket.bytes)
 end
 message=fread(dedicatedSocket.p, dedicatedSocket.bytes);
-[audio.left, audio.right, audio.output, audio.index] = conversionBinaryMex(message);
-
-newInd = audio.index;
-blocksAvailable = newInd - oldInd;
-
-if (blocksAvailable == 0)
-    data = 0;
-    lost = -1;
-    return;
-end
-
-lost = 0;
-if (blocksAvailable > nbBlocks)
-    lost = blocksAvailable-nbBlocks;
-    disp([num2str(lost), ' blocks have been lost']);
-    blocksAvailable = nbBlocks;
-end
+[audio.left, audio.right, audio.output] = conversionBinaryMex(message);
 
 %framesAvailable = blocksAvailable*periodSize;
 framesAvailable=length(audio.left);

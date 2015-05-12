@@ -17,14 +17,14 @@
 #include <matrix.h>
 #include <stdint.h>
 
-void conversionMex(double *inputStr, double *outputLeft, double *outputRight, double *output, double *outputIndex, int samples, int len)
+void conversionMex(double *inputStr, double *outputLeft, double *outputRight, double *output, int samples, int len)
 {
     int32_t i, half;
     int32_t num, *p;
     char a[4];
     
     /*To calculate this one time and not on every loop*/
-    half = (len-4)/2;
+    half = len/2;
     
     for(i=0; i<samples; i++)
     {
@@ -56,17 +56,6 @@ void conversionMex(double *inputStr, double *outputLeft, double *outputRight, do
         outputRight[i] = num;
         output[samples+i] = num;
     }
-    
-    /*Index*/
-    a[0] = (char) inputStr[len-4];
-    a[1] = (char) inputStr[len-3];
-    a[2] = (char) inputStr[len-2];
-    a[3] = (char) inputStr[len-1];
-    /*Pointer p points to array a*/
-    p = (int32_t *) a;
-    /*num equals the value p points to*/
-    num = *p;
-    outputIndex[0] = num;
 }
 
 /* The gateway function */
@@ -79,24 +68,21 @@ void mexFunction(int nlhs, mxArray *plhs[],
     double *outputLeft;
     double *outputRight;
     double *output;
-    double *outputIndex;
-    mwSize ncols;
+    
     /* create a pointer to the real data in the input matrix  */
     inputStr = mxGetData(prhs[0]);
 
     len = mxGetNumberOfElements(prhs[0]); 
-    samples = ((len-4)/4)/2;
+    samples = (len/4)/2;
 
     plhs[0] = mxCreateDoubleMatrix(samples,1,mxREAL);
     plhs[1] = mxCreateDoubleMatrix(samples,1,mxREAL);
     plhs[2] = mxCreateDoubleMatrix(samples, 2, mxREAL);
-    plhs[3] = mxCreateDoubleMatrix(1,1, mxREAL);
 
     outputLeft = mxGetPr(plhs[0]);
     outputRight = mxGetPr(plhs[1]);
     output =  mxGetPr(plhs[2]);
-    outputIndex = mxGetPr(plhs[3]);
     
     /* call the computational routine */
-    conversionMex(inputStr, outputLeft, outputRight, output, outputIndex, samples, len);
+    conversionMex(inputStr, outputLeft, outputRight, output, samples, len);
 }
