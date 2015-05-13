@@ -32,6 +32,9 @@
 
 /* findValue ----------------------------------------------------------------- */
 
+/* This function searches for the 'string' in 'buffer'. If it's found, 
+   the number that follows is retrieved. */
+
 int64_t findValue(char *buffer, char *string)
 {
     int i=0, j, len=0;
@@ -114,4 +117,46 @@ int getAudioData(binaudio_portStruct *src, int32_t *dest,
     }
 
     return n;
+}
+
+/* --- getAudioData ----------------------------------------------------- */
+
+/* This function sends the 'buffer' over the file descriptor 'fd' (Socket communication) */
+
+void SocketSend(int fd, int32_t *buffer, int length)
+{
+    int i, n;
+    uint32_t total=0;
+    int32_t *aux;
+    int good=0, bad=0;
+
+    aux = malloc(length*sizeof(int32_t));
+
+    n = send(fd, buffer, length*sizeof(int32_t), NULL);
+
+    if(n>0)
+    {
+        good++;
+        printf("SENT: n = %d bytes (%d samples)\n", n, n/4);
+    }
+    total = n/4;
+    while(total<length)
+    {
+        for(i=0; i<(length-total); i++)
+        {
+            aux[i] = buffer[total+i];
+        }
+        n = send(fd, aux, i*sizeof(int32_t), NULL);
+        if(n>0)
+        {
+            good++;
+            total = total + n/4;
+            printf("SENT: n = %d bytes (%d samples)\tTOTAL: n = %d bytes (%d samples)\n", n, n/4, total*4, total);
+        }
+        else
+            bad++;
+    }
+
+    free(aux);
+    return 0;
 }

@@ -33,11 +33,33 @@
 
 #include "bass_c_types.h"
 
-
 #include <stdint.h>
 #include <string.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/poll.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <errno.h>
+
+#define MessageBufferSize	512
+#define POLL_SIZE           32
+#define infoSize            4   //int32_t x2 and int64_t x1 => int32_t xinfoSize
+
+int server_sockfd, client_sockfd, portno, clilen, n;
+char buffer[MessageBufferSize];
+int32_t *message, *messageInfo;
+int64_t sizeofMessage;
+
+
+
+struct sockaddr_in serv_addr, cli_addr;
+struct pollfd poll_set[POLL_SIZE];
+
 int64_t findValue(char *buffer, char *value);
 int getAudioData(binaudio_portStruct *src, int32_t *dest,
                  int N, int64_t *nfr, int *loss);
+void SocketSend(int fd, int32_t *buffer, int length);
 
 #endif /* SOCKETS_H */
