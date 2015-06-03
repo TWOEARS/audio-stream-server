@@ -105,8 +105,7 @@ int listCaptureDevices(void)
 /* initCapture -------------------------------------------------------------- */
 
 int initCapture(bass_captureStruct **pcap, const char *device,
-                uint32_t sampleRate, uint32_t nFramesPerChunk,
-                uint32_t nChunksOnPort)
+                uint32_t sampleRate, uint32_t nFramesPerChunk)
 {
     bass_captureStruct *cap;
     *pcap = malloc(sizeof(bass_captureStruct));

@@ -73,8 +73,7 @@ enum {E_NOMEM = 1, E_NODEVICE, E_DEVICE, E_HWPARAMS, E_SWPARAMS};
 
 int listCaptureDevices(void);
 int initCapture(bass_captureStruct **pcap, const char *device,
-                uint32_t sampleRate, uint32_t nFramesPerChunk,
-                uint32_t nChunksOnPort);
+                uint32_t sampleRate, uint32_t nFramesPerChunk);
 int createCapture(bass_captureStruct *cap);
 int setHwparams(bass_captureStruct *cap);
 int setSwparams(bass_captureStruct *cap);

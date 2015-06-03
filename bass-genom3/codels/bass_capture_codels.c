@@ -61,8 +61,7 @@ startAcquire(const char *device, uint32_t sampleRate,
         return_bass_exception(err);
 
     /* Start the capture */
-    initCapture(&(ids->cap), device, sampleRate, nFramesPerChunk,
-                nChunksOnPort);
+    initCapture(&(ids->cap), device, sampleRate, nFramesPerChunk);
     if ((err = createCapture(ids->cap)) < 0) {
         endCapture(&(ids->cap));
         return_bass_exception(err);
