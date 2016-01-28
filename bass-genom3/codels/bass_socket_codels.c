@@ -124,7 +124,7 @@ initModule(const bass_Audio *Audio, genom_context self)
 /** Codel Transfer of activity DedicatedSocket.
  *
  * Triggered by bass_recv.
- * Yields to bass_recv, bass_ether.
+ * Yields to bass_pause_recv, bass_ether.
  */
 genom_event
 Transfer(const bass_Audio *Audio, genom_context self)
@@ -205,7 +205,7 @@ Transfer(const bass_Audio *Audio, genom_context self)
                 }
             }
         }
-        return bass_recv;
+        return bass_pause_recv;
     }
     else
         return bass_ether;

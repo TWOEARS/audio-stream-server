@@ -50,7 +50,7 @@ libbass_codels_la_LDFLAGS+=	-release $(PACKAGE_VERSION)
 BUILT_SOURCES=	bass_c_types.h
 CLEANFILES=	${BUILT_SOURCES}
 bass_c_types.h: ${top_srcdir}/bass.gen
-	${genom3}  mappings \
+	${GENOM3}  mappings \
 	  -MD -MF .deps/$@.d -MT $@ --signature -l c $< >$@
 
 -include .deps/bass_c_types.h.d

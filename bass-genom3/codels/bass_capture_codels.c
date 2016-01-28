@@ -45,7 +45,7 @@
  * Triggered by bass_start.
  * Yields to bass_exec, bass_ether.
  * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
- * bass_e_swparams.
+ *        bass_e_swparams.
  */
 genom_event
 startAcquire(const char *device, uint32_t sampleRate,
@@ -73,9 +73,9 @@ startAcquire(const char *device, uint32_t sampleRate,
 /** Codel execAcquire of activity Acquire.
  *
  * Triggered by bass_exec.
- * Yields to bass_exec, bass_stop.
+ * Yields to bass_pause_exec, bass_stop.
  * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
- * bass_e_swparams.
+ *        bass_e_swparams.
  */
 genom_event
 execAcquire(bass_ids *ids, const bass_Audio *Audio,
@@ -91,7 +91,7 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
 
     /* Publish the data on the Port */
     publishPort(Audio, ids->cap, self);
-    return bass_exec;
+    return bass_pause_exec;
 }
 
 /** Codel stopAcquire of activity Acquire.
@@ -99,7 +99,7 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
  * Triggered by bass_stop.
  * Yields to bass_ether.
  * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
- * bass_e_swparams.
+ *        bass_e_swparams.
  */
 genom_event
 stopAcquire(bass_ids *ids, genom_context self)
