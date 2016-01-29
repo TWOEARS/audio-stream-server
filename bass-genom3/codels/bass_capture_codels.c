@@ -73,7 +73,7 @@ startAcquire(const char *device, uint32_t sampleRate,
 /** Codel execAcquire of activity Acquire.
  *
  * Triggered by bass_exec.
- * Yields to bass_pause_exec, bass_stop.
+ * Yields to bass_exec, bass_stop.
  * Throws bass_e_nomem, bass_e_device, bass_e_hwparams,
  *        bass_e_swparams.
  */
@@ -91,7 +91,7 @@ execAcquire(bass_ids *ids, const bass_Audio *Audio,
 
     /* Publish the data on the Port */
     publishPort(Audio, ids->cap, self);
-    return bass_pause_exec;
+    return bass_exec;
 }
 
 /** Codel stopAcquire of activity Acquire.
