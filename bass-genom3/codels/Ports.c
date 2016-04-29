@@ -29,6 +29,7 @@
  */
 
 #include <string.h>
+#include <sys/time.h>
 
 #include "Ports.h"
 #include "bass_c_types.h"
@@ -73,6 +74,7 @@ int publishPort(const bass_Audio *Audio, bass_captureStruct *cap,
     uint32_t fop; /* total amount of Frames On the Port */
     uint32_t bps; /* amout of Bytes Per Sample */
     int pos, ii;
+    struct timeval timeNow;
 
     data = Audio->data(self);
     fpc = data->nFramesPerChunk;
@@ -93,6 +95,11 @@ int publishPort(const bass_Audio *Audio, bass_captureStruct *cap,
     }
 
     data->lastFrameIndex += fpc;
+
+    gettimeofday(&timeNow, NULL);
+    data->stamp.sec = timeNow.tv_sec;
+    data->stamp.nsec = timeNow.tv_usec/1000;
+    
     Audio->write(self);
     return 0;
 }
